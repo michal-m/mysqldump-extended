@@ -21,11 +21,17 @@ function verbose {
 # SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW
 MYSQL_USER="mysqldump"
 MYSQL_HOST="localhost"
+MYSQL_CHARSET="utf8"
 
 # Parse commandline options first
 while :
 do
     case "$1" in
+        -c | --default-charset)
+            if [ -z "$2" ]; then echo "Error: Default character set not specified" >&2; exit 1; fi
+            MYSQL_CHARSET=$2
+            shift 2
+            ;;
         -h | --host)
             if [ -z "$2" ]; then echo "Error: MySQL server hostname not specified" >&2; exit 1; fi
             MYSQL_HOST=$2
@@ -69,7 +75,7 @@ DATE=`date +'%Y%m%d'`
 DIR_BACKUP="/home/update"
 DIR_SQL="mysqldumps_${DATE}"
 
-STATIC_PARAMS="--default-character-set=utf8 --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
+STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 MYSQLDUMP="/usr/local/bin/mysqldump"
 MYSQL="/usr/local/bin/mysql"
 

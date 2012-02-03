@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# mmusial 25-05-2010, updated 28-06-2011
-# backup each mysql db into a different file, rather than one big file
+# backup each mysql database into a different file, rather than one big file
 # as with --all-databases - will make restores easier
 # based on:
 # http://soniahamilton.wordpress.com/2005/11/16/backup-multiple-databases-into-separate-files/
@@ -49,47 +48,11 @@ for db in $sDatabases; do
     # dumping database tables structure
     $MYSQLDUMP \
         --no-data \
+        --opt \
         --set-charset \
         --skip-triggers \
-        --skip-opt \
-        --create-options \
         $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
-
-    # dumping routines
-    $MYSQLDUMP \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --routines \
-        --skip-opt \
-        --create-options \
-        --skip-triggers \
-        $STATIC_PARAMS \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.2-ROUTINES.sql
-
-    # dumping triggers
-    $MYSQLDUMP \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --skip-opt \
-        --create-options \
-        --triggers \
-        $STATIC_PARAMS \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.3-TRIGGERS.sql
-
-    # dumping events (works in MySQL 5.1+)
-    $MYSQLDUMP \
-        --events \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --skip-opt \
-        --create-options \
-        --skip-triggers \
-        $STATIC_PARAMS \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.4-EVENTS.sql
 
     # dumping data
     $MYSQLDUMP \
@@ -100,7 +63,39 @@ for db in $sDatabases; do
         --opt \
         --skip-triggers \
         $STATIC_PARAMS \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.5-DATA.sql
+        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.2-DATA.sql
+
+    # dumping triggers
+    $MYSQLDUMP \
+        --no-create-db \
+        --no-create-info \
+        --no-data \
+        --skip-opt --create-options \
+        --triggers \
+        $STATIC_PARAMS \
+        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.3-TRIGGERS.sql
+
+    # dumping events (works in MySQL 5.1+)
+    $MYSQLDUMP \
+        --events \
+        --no-create-db \
+        --no-create-info \
+        --no-data \
+        --skip-opt --create-options \
+        --skip-triggers \
+        $STATIC_PARAMS \
+        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.4-EVENTS.sql
+
+    # dumping routines
+    $MYSQLDUMP \
+        --no-create-db \
+        --no-create-info \
+        --no-data \
+        --routines \
+        --skip-opt --create-options \
+        --skip-triggers \
+        $STATIC_PARAMS \
+        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.5-ROUTINES.sql
 
     echo "done in" $SECONDS "second(s);"
 done

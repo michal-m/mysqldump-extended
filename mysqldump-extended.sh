@@ -24,6 +24,7 @@ set -e
 # Initial Variable definitions
 DATE=`date +'%Y%m%d'`
 TAR="/usr/bin/tar"
+MYSQL_BIN_DIR="/usr/local/bin"
 MYSQL_USER="mysqldump"
 MYSQL_HOST="localhost"
 MYSQL_CHARSET="utf8"
@@ -58,6 +59,11 @@ do
         -f | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
             OUTPUT_FILE=$2
+            shift 2
+            ;;
+        -n | --bin-dir)
+            if [ -z "$2" ]; then echo "Error: MySQL binaries directory not specified" >&2; exit 1; fi
+            MYSQL_BIN_DIR=$2
             shift 2
             ;;
         -p | --pass)
@@ -95,7 +101,19 @@ do
     esac
 done
 
-# Checking if required parameters are present and valid
+# First, make sure mysql binaries are accessible
+if [ ! -d "$MYSQL_BIN_DIR" ]; then
+	echo "Error: Speciefied MySQL binaries directory is not valid" >&2
+	exit 1
+elif [ ! -x "${MYSQL_BIN_DIR}/mysql" ] || [ ! -x "${MYSQL_BIN_DIR}/mysqldump" ] ; then
+	echo "Error: MySQL binaries don't exits or are not executable" >&2
+	exit 1
+else
+	MYSQL="${MYSQL_BIN_DIR}/mysql"
+	MYSQLDUMP="${MYSQL_BIN_DIR}/mysqldump"
+fi
+
+# Checking if other required parameters are present and valid
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
 if [ ! -w "$OUTPUT_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
 if [ -e "${OUTPUT_DIR}/${OUTPUT_FILE}" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
@@ -107,8 +125,6 @@ if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not exec
 verbose "START\n"
 
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
-MYSQLDUMP="/usr/local/bin/mysqldump"
-MYSQL="/usr/local/bin/mysql"
 
 STAT="/usr/bin/stat"
 
@@ -118,9 +134,6 @@ else
     verbose "Deleting any old backups..."
     rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
 fi
-
-verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
-mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
 
 if [ "$DATABASE_NAME" ]; then
     verbose "\nDatabase to be dumped: $DATABASE_NAME"
@@ -133,6 +146,9 @@ else
 
     sDatabases=${aDatabases[*]}
 fi
+
+verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
 
 verbose "Beginning dump process..."
 for db in $sDatabases; do

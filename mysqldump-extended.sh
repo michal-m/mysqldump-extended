@@ -4,7 +4,7 @@
 #   http://github.com/michal-m/mysqldump-extended
 #
 # Author:
-#   Micha≥ Musia≥ <michal.j.musial@gmail.com>
+#   Micha≈Ç Musia≈Ç <michal.j.musial@gmail.com>
 #   Copyright 2012, no rights reserved.
 
 # Functions
@@ -17,6 +17,9 @@ function verbose {
         fi
     fi
 }
+
+# Exit on errors
+set -e
 
 # Initial Variable definitions
 DATE=`date +'%Y%m%d'`

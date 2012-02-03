@@ -22,6 +22,7 @@ function verbose {
 MYSQL_USER="mysqldump"
 MYSQL_HOST="localhost"
 MYSQL_CHARSET="utf8"
+BACKUP_DIR="."
 
 # Parse commandline options first
 while :
@@ -30,6 +31,11 @@ do
         -c | --default-charset)
             if [ -z "$2" ]; then echo "Error: Default character set not specified" >&2; exit 1; fi
             MYSQL_CHARSET=$2
+            shift 2
+            ;;
+        -d | --output-directory)
+            if [ -z "$2" ]; then echo "Error: Output directory not specified" >&2; exit 1; fi
+            BACKUP_DIR=$2
             shift 2
             ;;
         -h | --host)
@@ -64,7 +70,9 @@ do
     esac
 done
 
-# Checking if required parameters are present
+# Checking if required parameters are present and valid
+if [ ! -d "$BACKUP_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
+if [ ! -w "$BACKUP_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
 if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
 
 # OK, let's roll
@@ -72,7 +80,6 @@ verbose "START\n" 1
 
 DATE=`date +'%Y%m%d'`
 
-DIR_BACKUP="/home/update"
 DIR_SQL="mysqldumps_${DATE}"
 
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
@@ -84,10 +91,10 @@ TAR="/usr/bin/tar"
 OUTPUT_FILE="mysqldumps.tar.gz"
 
 verbose "Deleting any old backups..."
-rm -fv ${DIR_BACKUP}/mysqldump*.tar.gz
+rm -fv ${BACKUP_DIR}/mysqldump*.tar.gz
 
 verbose "\nCreating temporary folder: ${DIR_SQL}."
-mkdir ${DIR_BACKUP}/${DIR_SQL}
+mkdir ${BACKUP_DIR}/${DIR_SQL}
 
 verbose "\nRetrieving list of all databases... " 1
 aDatabases=( $($MYSQL $STATIC_PARAMS -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
@@ -106,7 +113,7 @@ for db in $sDatabases; do
         --opt \
         --set-charset \
         --skip-triggers \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
+        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
 
     # dumping data
     $MYSQLDUMP $STATIC_PARAMS \
@@ -116,7 +123,7 @@ for db in $sDatabases; do
         --no-create-info \
         --opt \
         --skip-triggers \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.2-DATA.sql
+        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.2-DATA.sql
 
     # dumping triggers
     $MYSQLDUMP $STATIC_PARAMS \
@@ -125,7 +132,7 @@ for db in $sDatabases; do
         --no-data \
         --skip-opt --create-options \
         --triggers \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.3-TRIGGERS.sql
+        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.3-TRIGGERS.sql
 
     # dumping events (works in MySQL 5.1+)
     $MYSQLDUMP $STATIC_PARAMS \
@@ -135,7 +142,7 @@ for db in $sDatabases; do
         --no-data \
         --skip-opt --create-options \
         --skip-triggers \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.4-EVENTS.sql
+        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.4-EVENTS.sql
 
     # dumping routines
     $MYSQLDUMP $STATIC_PARAMS \
@@ -145,7 +152,7 @@ for db in $sDatabases; do
         --routines \
         --skip-opt --create-options \
         --skip-triggers \
-        --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.5-ROUTINES.sql
+        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.5-ROUTINES.sql
 
     verbose "done in" $SECONDS "second(s);"
 done
@@ -156,12 +163,12 @@ $MYSQL $STATIC_PARAMS -B -N -e "SELECT DISTINCT CONCAT(
         'SHOW GRANTS FOR ''', user, '''@''', host, ''';'
         ) AS query FROM mysql.user" | \
         $MYSQL $STATIC_PARAMS | \
-        sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${DIR_BACKUP}/${DIR_SQL}/PRIVILEGES.sql"
+        sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${BACKUP_DIR}/${DIR_SQL}/PRIVILEGES.sql"
 verbose "done in" $SECONDS "second(s)."
 verbose "Dump process completed."
 
 verbose "\nTarballing all sql dumps... " 1
-cd ${DIR_BACKUP}
+cd ${BACKUP_DIR}
 SECONDS=0
 $TAR cfz ${OUTPUT_FILE} ${DIR_SQL}
 verbose "done in" $SECONDS "second(s)."
@@ -169,8 +176,8 @@ verbose "done in" $SECONDS "second(s)."
 output_file_size=`$STAT -f %z $OUTPUT_FILE`
 
 verbose "\nDeleting sql files... " 1
-rm -fvR ${DIR_BACKUP}/${DIR_SQL}
+rm -fvR ${BACKUP_DIR}/${DIR_SQL}
 verbose "done."
 
-verbose "\nFinal dump file: ${DIR_BACKUP}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
+verbose "\nFinal dump file: ${BACKUP_DIR}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
 verbose "END."

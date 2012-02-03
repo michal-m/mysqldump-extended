@@ -34,7 +34,7 @@ mkdir ${DIR_BACKUP}/${DIR_SQL}
 
 echo
 echo -n "Retrieving list of all databases... "
-aDatabases=( $($MYSQL --user=$MYSQL_USER --password=$MYSQL_PASSWORD -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema)") )
+aDatabases=( $($MYSQL --user=$MYSQL_USER --password=$MYSQL_PASSWORD -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
 echo "done."
 echo "Found" ${#aDatabases[@]}" valid database(s)."
 echo

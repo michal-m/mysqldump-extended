@@ -48,6 +48,10 @@ do
             MYSQL_PASSWORD=$2
             shift 2
             ;;
+        -s | --skip-delete-previous)
+            SKIP_DELETE_PREVIOUS="skip delete previous"
+            shift
+            ;;
         -u | --user)
             if [ -z "$2" ]; then echo "Error: MySQL username not specified" >&2; exit 1; fi
             MYSQL_USER=$2
@@ -90,8 +94,12 @@ STAT="/usr/bin/stat"
 TAR="/usr/bin/tar"
 OUTPUT_FILE="mysqldumps.tar.gz"
 
-verbose "Deleting any old backups..."
-rm -fv ${BACKUP_DIR}/mysqldump*.tar.gz
+if [ "$SKIP_DELETE_PREVIOUS" ]; then
+    verbose "NOT deleting any old backups..."
+else
+    verbose "Deleting any old backups..."
+    rm -fv ${BACKUP_DIR}/mysqldump*.tar.gz
+fi
 
 verbose "\nCreating temporary folder: ${DIR_SQL}."
 mkdir ${BACKUP_DIR}/${DIR_SQL}

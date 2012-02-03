@@ -52,6 +52,7 @@ for db in $sDatabases; do
         --set-charset \
         --skip-triggers \
         --skip-opt \
+        --create-options \
         $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
 
@@ -62,6 +63,7 @@ for db in $sDatabases; do
         --no-data \
         --routines \
         --skip-opt \
+        --create-options \
         --skip-triggers \
         $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.2-ROUTINES.sql
@@ -72,6 +74,7 @@ for db in $sDatabases; do
         --no-create-info \
         --no-data \
         --skip-opt \
+        --create-options \
         --triggers \
         $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.3-TRIGGERS.sql
@@ -83,6 +86,7 @@ for db in $sDatabases; do
         --no-create-info \
         --no-data \
         --skip-opt \
+        --create-options \
         --skip-triggers \
         $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.4-EVENTS.sql

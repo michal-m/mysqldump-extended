@@ -16,10 +16,25 @@ function verbose {
     fi
 }
 
+# Initial Variable definitions
+# MYSQL_USER must have following global privileges:
+# SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW
+MYSQL_USER="mysqldump"
+
 # Parse commandline options first
 while :
 do
     case "$1" in
+        -p | --pass)
+            if [ -z "$2" ]; then echo "Error: password not specified" >&2; exit 1; fi
+            MYSQL_PASSWORD=$2
+            shift 2
+            ;;
+        -u | --user)
+            if [ -z "$2" ]; then echo "Error: username not specified" >&2; exit 1; fi
+            MYSQL_USER=$2
+            shift 2
+            ;;
         -v | --verbose)
             VERBOSE="verbose"
             shift
@@ -37,6 +52,10 @@ do
     esac
 done
 
+# Checking if required parameters are present
+if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
+
+
 verbose "START\n" 1
 
 DATE=`date +'%Y%m%d'`
@@ -44,10 +63,6 @@ DATE=`date +'%Y%m%d'`
 DIR_BACKUP="/home/update"
 DIR_SQL="mysqldumps_${DATE}"
 
-# MYSQL_USER must have following global privileges:
-# SHOW DATABASES, SELECT, LOCK TABLES
-MYSQL_USER="mysqldump"
-MYSQL_PASSWORD="*****"
 MYSQLDUMP="/usr/local/bin/mysqldump"
 MYSQL="/usr/local/bin/mysql"
 

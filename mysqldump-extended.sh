@@ -17,12 +17,15 @@ function verbose {
 }
 
 # Initial Variable definitions
+DATE=`date +'%Y%m%d'`
 # MYSQL_USER must have following global privileges:
 # SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW
 MYSQL_USER="mysqldump"
 MYSQL_HOST="localhost"
 MYSQL_CHARSET="utf8"
-BACKUP_DIR="."
+OUTPUT_DIR="."
+OUTPUT_FILE="mysqldumps.tar.gz"
+DUMPS_DIRNAME="mysqldumps_${DATE}"
 
 # Parse commandline options first
 while :
@@ -35,12 +38,17 @@ do
             ;;
         -d | --output-directory)
             if [ -z "$2" ]; then echo "Error: Output directory not specified" >&2; exit 1; fi
-            BACKUP_DIR=$2
+            OUTPUT_DIR=$2
             shift 2
             ;;
         -h | --host)
             if [ -z "$2" ]; then echo "Error: MySQL server hostname not specified" >&2; exit 1; fi
             MYSQL_HOST=$2
+            shift 2
+            ;;
+        -f | --output-file)
+            if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
+            OUTPUT_FILE=$2
             shift 2
             ;;
         -p | --pass)
@@ -75,16 +83,14 @@ do
 done
 
 # Checking if required parameters are present and valid
-if [ ! -d "$BACKUP_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
-if [ ! -w "$BACKUP_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
+if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
+if [ ! -w "$OUTPUT_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
+if [ -e "${OUTPUT_DIR}/${OUTPUT_FILE}" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
 if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
+if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then echo "Error: Output directory already contains a file/folder with the same name as temporary folder required: ${OUTPUT_DIR}/$DUMPS_DIRNAME" >&2; exit 1; fi
 
 # OK, let's roll
 verbose "START\n" 1
-
-DATE=`date +'%Y%m%d'`
-
-DIR_SQL="mysqldumps_${DATE}"
 
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 MYSQLDUMP="/usr/local/bin/mysqldump"
@@ -92,17 +98,16 @@ MYSQL="/usr/local/bin/mysql"
 
 STAT="/usr/bin/stat"
 TAR="/usr/bin/tar"
-OUTPUT_FILE="mysqldumps.tar.gz"
 
 if [ "$SKIP_DELETE_PREVIOUS" ]; then
     verbose "NOT deleting any old backups..."
 else
     verbose "Deleting any old backups..."
-    rm -fv ${BACKUP_DIR}/mysqldump*.tar.gz
+    rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
 fi
 
-verbose "\nCreating temporary folder: ${DIR_SQL}."
-mkdir ${BACKUP_DIR}/${DIR_SQL}
+verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
 
 verbose "\nRetrieving list of all databases... " 1
 aDatabases=( $($MYSQL $STATIC_PARAMS -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
@@ -121,7 +126,7 @@ for db in $sDatabases; do
         --opt \
         --set-charset \
         --skip-triggers \
-        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
+        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.1-DB+TABLES+VIEWS.sql
 
     # dumping data
     $MYSQLDUMP $STATIC_PARAMS \
@@ -131,7 +136,7 @@ for db in $sDatabases; do
         --no-create-info \
         --opt \
         --skip-triggers \
-        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.2-DATA.sql
+        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.2-DATA.sql
 
     # dumping triggers
     $MYSQLDUMP $STATIC_PARAMS \
@@ -140,7 +145,7 @@ for db in $sDatabases; do
         --no-data \
         --skip-opt --create-options \
         --triggers \
-        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.3-TRIGGERS.sql
+        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.3-TRIGGERS.sql
 
     # dumping events (works in MySQL 5.1+)
     $MYSQLDUMP $STATIC_PARAMS \
@@ -150,7 +155,7 @@ for db in $sDatabases; do
         --no-data \
         --skip-opt --create-options \
         --skip-triggers \
-        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.4-EVENTS.sql
+        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.4-EVENTS.sql
 
     # dumping routines
     $MYSQLDUMP $STATIC_PARAMS \
@@ -160,7 +165,7 @@ for db in $sDatabases; do
         --routines \
         --skip-opt --create-options \
         --skip-triggers \
-        --databases $db > ${BACKUP_DIR}/${DIR_SQL}/$db.5-ROUTINES.sql
+        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.5-ROUTINES.sql
 
     verbose "done in" $SECONDS "second(s);"
 done
@@ -171,21 +176,21 @@ $MYSQL $STATIC_PARAMS -B -N -e "SELECT DISTINCT CONCAT(
         'SHOW GRANTS FOR ''', user, '''@''', host, ''';'
         ) AS query FROM mysql.user" | \
         $MYSQL $STATIC_PARAMS | \
-        sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${BACKUP_DIR}/${DIR_SQL}/PRIVILEGES.sql"
+        sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${OUTPUT_DIR}/${DUMPS_DIRNAME}/PRIVILEGES.sql"
 verbose "done in" $SECONDS "second(s)."
 verbose "Dump process completed."
 
 verbose "\nTarballing all sql dumps... " 1
-cd ${BACKUP_DIR}
+cd ${OUTPUT_DIR}
 SECONDS=0
-$TAR cfz ${OUTPUT_FILE} ${DIR_SQL}
+$TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
 verbose "done in" $SECONDS "second(s)."
 
 output_file_size=`$STAT -f %z $OUTPUT_FILE`
 
 verbose "\nDeleting sql files... " 1
-rm -fvR ${BACKUP_DIR}/${DIR_SQL}
+rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
 verbose "done."
 
-verbose "\nFinal dump file: ${BACKUP_DIR}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
+verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
 verbose "END."

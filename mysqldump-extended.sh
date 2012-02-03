@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# backup each mysql database into a different file, rather than one big file
-# as with --all-databases - will make restores easier
-# based on:
-# http://soniahamilton.wordpress.com/2005/11/16/backup-multiple-databases-into-separate-files/
-# http://mysqlpreacher.com/wordpress/2010/08/dumping-ddl-mysqldump-tables-stored-procedures-events-triggers-separately/
+#
+# Fork me on github:
+#   http://github.com/michal-m/mysqldump-extended
+#
+# Author:
+#   Micha³ Musia³ <michal.j.musial@gmail.com>
+#   Copyright 2012, no rights reserved.
 
 # Functions
 function verbose {
@@ -19,8 +21,6 @@ function verbose {
 # Initial Variable definitions
 DATE=`date +'%Y%m%d'`
 TAR="/usr/bin/tar"
-# MYSQL_USER must have following global privileges:
-# SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW
 MYSQL_USER="mysqldump"
 MYSQL_HOST="localhost"
 MYSQL_CHARSET="utf8"

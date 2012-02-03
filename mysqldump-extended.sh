@@ -69,6 +69,10 @@ do
             VERBOSE="verbose"
             shift
             ;;
+        -t | --skip-tarballing)
+            SKIP_TARBALLING="skip tarballing"
+            shift
+            ;;
 #        --) # End of all options
 #            shift
 #            break;
@@ -180,17 +184,22 @@ $MYSQL $STATIC_PARAMS -B -N -e "SELECT DISTINCT CONCAT(
 verbose "done in" $SECONDS "second(s)."
 verbose "Dump process completed."
 
-verbose "\nTarballing all sql dumps... " 1
-cd ${OUTPUT_DIR}
-SECONDS=0
-$TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
-verbose "done in" $SECONDS "second(s)."
+if [ "$SKIP_TARBALLING" ]; then
+    verbose "\nSkipping tarballing sql dumps"
+else
+    verbose "\nTarballing all sql dumps... " 1
+    cd ${OUTPUT_DIR}
+    SECONDS=0
+    $TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
+    verbose "done in" $SECONDS "second(s)."
 
-output_file_size=`$STAT -f %z $OUTPUT_FILE`
+    output_file_size=`$STAT -f %z $OUTPUT_FILE`
 
-verbose "\nDeleting sql files... " 1
-rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
-verbose "done."
+    verbose "\nDeleting sql files... " 1
+    rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    verbose "done."
 
-verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
+    verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE} (${output_file_size} bytes).\n"
+fi
+
 verbose "END."

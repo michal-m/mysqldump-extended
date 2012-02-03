@@ -20,18 +20,24 @@ function verbose {
 # MYSQL_USER must have following global privileges:
 # SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW
 MYSQL_USER="mysqldump"
+MYSQL_HOST="localhost"
 
 # Parse commandline options first
 while :
 do
     case "$1" in
+        -h | --host)
+            if [ -z "$2" ]; then echo "Error: MySQL server hostname not specified" >&2; exit 1; fi
+            MYSQL_HOST=$2
+            shift 2
+            ;;
         -p | --pass)
-            if [ -z "$2" ]; then echo "Error: password not specified" >&2; exit 1; fi
+            if [ -z "$2" ]; then echo "Error: MySQL password not specified" >&2; exit 1; fi
             MYSQL_PASSWORD=$2
             shift 2
             ;;
         -u | --user)
-            if [ -z "$2" ]; then echo "Error: username not specified" >&2; exit 1; fi
+            if [ -z "$2" ]; then echo "Error: MySQL username not specified" >&2; exit 1; fi
             MYSQL_USER=$2
             shift 2
             ;;
@@ -55,7 +61,7 @@ done
 # Checking if required parameters are present
 if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
 
-
+# OK, let's roll
 verbose "START\n" 1
 
 DATE=`date +'%Y%m%d'`
@@ -63,6 +69,7 @@ DATE=`date +'%Y%m%d'`
 DIR_BACKUP="/home/update"
 DIR_SQL="mysqldumps_${DATE}"
 
+STATIC_PARAMS="--default-character-set=utf8 --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 MYSQLDUMP="/usr/local/bin/mysqldump"
 MYSQL="/usr/local/bin/mysql"
 
@@ -77,67 +84,61 @@ verbose "\nCreating temporary folder: ${DIR_SQL}."
 mkdir ${DIR_BACKUP}/${DIR_SQL}
 
 verbose "\nRetrieving list of all databases... " 1
-aDatabases=( $($MYSQL --user=$MYSQL_USER --password=$MYSQL_PASSWORD -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
+aDatabases=( $($MYSQL $STATIC_PARAMS -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
 verbose "done."
 verbose "Found" ${#aDatabases[@]}" valid database(s).\n"
 
 sDatabases=${aDatabases[*]}
 
 verbose "Beginning dump process..."
-STATIC_PARAMS="--default-character-set=utf8 --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 for db in $sDatabases; do
     verbose "- dumping '${db}'... " 1
     SECONDS=0
     # dumping database tables structure
-    $MYSQLDUMP \
+    $MYSQLDUMP $STATIC_PARAMS \
         --no-data \
         --opt \
         --set-charset \
         --skip-triggers \
-        $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.1-DB+TABLES+VIEWS.sql
 
     # dumping data
-    $MYSQLDUMP \
+    $MYSQLDUMP $STATIC_PARAMS \
         --force \
         --hex-blob \
         --no-create-db \
         --no-create-info \
         --opt \
         --skip-triggers \
-        $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.2-DATA.sql
 
     # dumping triggers
-    $MYSQLDUMP \
+    $MYSQLDUMP $STATIC_PARAMS \
         --no-create-db \
         --no-create-info \
         --no-data \
         --skip-opt --create-options \
         --triggers \
-        $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.3-TRIGGERS.sql
 
     # dumping events (works in MySQL 5.1+)
-    $MYSQLDUMP \
+    $MYSQLDUMP $STATIC_PARAMS \
         --events \
         --no-create-db \
         --no-create-info \
         --no-data \
         --skip-opt --create-options \
         --skip-triggers \
-        $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.4-EVENTS.sql
 
     # dumping routines
-    $MYSQLDUMP \
+    $MYSQLDUMP $STATIC_PARAMS \
         --no-create-db \
         --no-create-info \
         --no-data \
         --routines \
         --skip-opt --create-options \
         --skip-triggers \
-        $STATIC_PARAMS \
         --databases $db > ${DIR_BACKUP}/${DIR_SQL}/$db.5-ROUTINES.sql
 
     verbose "done in" $SECONDS "second(s);"
@@ -145,10 +146,10 @@ done
 
 verbose "- dumping PRIVILEGES... " 1
 SECONDS=0
-$MYSQL -B -N --user=$MYSQL_USER --password=$MYSQL_PASSWORD -e "SELECT DISTINCT CONCAT(
+$MYSQL $STATIC_PARAMS -B -N -e "SELECT DISTINCT CONCAT(
         'SHOW GRANTS FOR ''', user, '''@''', host, ''';'
         ) AS query FROM mysql.user" | \
-        $MYSQL --user=$MYSQL_USER --password=$MYSQL_PASSWORD | \
+        $MYSQL $STATIC_PARAMS | \
         sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${DIR_BACKUP}/${DIR_SQL}/PRIVILEGES.sql"
 verbose "done in" $SECONDS "second(s)."
 verbose "Dump process completed."

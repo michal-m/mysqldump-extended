@@ -35,10 +35,10 @@ DUMPS_DIRNAME="mysqldumps_${DATE}"
 # Parse commandline options first
 while :
 do
-    case "$1" in
-        -b | --database)
-            if [ -z "$2" ]; then echo "Error: Database name not specified" >&2; exit 1; fi
-            DATABASE_NAME=$2
+    case "$1" in  
+        -B | --bin-dir)
+            if [ -z "$2" ]; then echo "Error: MySQL binaries directory not specified" >&2; exit 1; fi
+            MYSQL_BIN_DIR=$2
             shift 2
             ;;
         -c | --default-charset)
@@ -46,7 +46,12 @@ do
             MYSQL_CHARSET=$2
             shift 2
             ;;
-        -d | --output-directory)
+        -d | --database)
+            if [ -z "$2" ]; then echo "Error: Database name not specified" >&2; exit 1; fi
+            DATABASE_NAME=$2
+            shift 2
+            ;;
+        -D | --output-directory)
             if [ -z "$2" ]; then echo "Error: Output directory not specified" >&2; exit 1; fi
             OUTPUT_DIR=$2
             shift 2
@@ -56,23 +61,22 @@ do
             MYSQL_HOST=$2
             shift 2
             ;;
-        -f | --output-file)
+        -F | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
             OUTPUT_FILE=$2
             shift 2
             ;;
-        -n | --bin-dir)
-            if [ -z "$2" ]; then echo "Error: MySQL binaries directory not specified" >&2; exit 1; fi
-            MYSQL_BIN_DIR=$2
-            shift 2
+        -k | --skip-delete-previous)
+            SKIP_DELETE_PREVIOUS="skip delete previous"
+            shift
             ;;
         -p | --pass)
             if [ -z "$2" ]; then echo "Error: MySQL password not specified" >&2; exit 1; fi
             MYSQL_PASSWORD=$2
             shift 2
             ;;
-        -s | --skip-delete-previous)
-            SKIP_DELETE_PREVIOUS="skip delete previous"
+        -s | --split-database-files)
+            SPLIT_DATABASE_FILES="split database files"
             shift
             ;;
         -u | --user)
@@ -154,56 +158,68 @@ verbose "Beginning dump process..."
 for db in $sDatabases; do
     verbose "- dumping '${db}'...\t" 1
     SECONDS=0
-    # dumping database tables structure
-    $MYSQLDUMP $STATIC_PARAMS \
-        --no-data \
-        --opt \
-        --set-charset \
-        --skip-triggers \
-        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.1-DB+TABLES+VIEWS.sql
+	if [ "$SPLIT_DATABASE_FILES" ]; then
+	    # dumping database tables structure
+	    $MYSQLDUMP $STATIC_PARAMS \
+	        --no-data \
+	        --opt \
+	        --set-charset \
+	        --skip-triggers \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.1-DB+TABLES+VIEWS.sql
 
-    # dumping data
-    $MYSQLDUMP $STATIC_PARAMS \
-        --force \
-        --hex-blob \
-        --no-create-db \
-        --no-create-info \
-        --opt \
-        --skip-triggers \
-        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.2-DATA.sql
+	    # dumping data
+	    $MYSQLDUMP $STATIC_PARAMS \
+	        --force \
+	        --hex-blob \
+	        --no-create-db \
+	        --no-create-info \
+	        --opt \
+	        --skip-triggers \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.2-DATA.sql
 
-    # dumping triggers
-    $MYSQLDUMP $STATIC_PARAMS \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --skip-opt --create-options \
-        --triggers \
-        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.3-TRIGGERS.sql
+	    # dumping triggers
+	    $MYSQLDUMP $STATIC_PARAMS \
+	        --no-create-db \
+	        --no-create-info \
+	        --no-data \
+	        --skip-opt --create-options \
+	        --triggers \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.3-TRIGGERS.sql
 
-    # dumping events (works in MySQL 5.1+)
-    $MYSQLDUMP $STATIC_PARAMS \
-        --events \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --skip-opt --create-options \
-        --skip-triggers \
-        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.4-EVENTS.sql
+	    # dumping events (works in MySQL 5.1+)
+	    $MYSQLDUMP $STATIC_PARAMS \
+	        --events \
+	        --no-create-db \
+	        --no-create-info \
+	        --no-data \
+	        --skip-opt --create-options \
+	        --skip-triggers \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.4-EVENTS.sql
 
-    # dumping routines
-    $MYSQLDUMP $STATIC_PARAMS \
-        --no-create-db \
-        --no-create-info \
-        --no-data \
-        --routines \
-        --skip-opt --create-options \
-        --skip-triggers \
-        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.5-ROUTINES.sql
-
+	    # dumping routines
+	    $MYSQLDUMP $STATIC_PARAMS \
+	        --no-create-db \
+	        --no-create-info \
+	        --no-data \
+	        --routines \
+	        --skip-opt --create-options \
+	        --skip-triggers \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.5-ROUTINES.sql
+	else
+		$MYSQLDUMP $STATIC_PARAMS \
+			--events \
+			--force \
+			--hex-blob \
+			--opt \
+			--routines \
+			--triggers \
+            --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.sql
+    fi
+        
     verbose "done in $SECONDS second(s);"
 done
 
+# We're not going to dump Privileges if only a single Database dumped
 if [ -z "$DATABASE_NAME" ]; then
     verbose "- dumping PRIVILEGES...\t" 1
     SECONDS=0

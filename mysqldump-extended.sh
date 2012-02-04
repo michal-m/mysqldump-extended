@@ -64,6 +64,7 @@ do
         -F | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
             OUTPUT_FILE=$2
+            TAR_GZ="tar gz"
             shift 2
             ;;
         -k | --skip-delete-previous)

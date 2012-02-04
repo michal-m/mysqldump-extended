@@ -136,7 +136,12 @@ if [ "$SKIP_DELETE_PREVIOUS" ]; then
     verbose "NOT deleting any old backups..."
 else
     verbose "Deleting any old backups..."
-    rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
+    
+    if [ "$TAR_GZ" ]; then
+        rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
+    else
+        rm -fRv ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    fi
 fi
 
 if [ "$DATABASE_NAME" ]; then

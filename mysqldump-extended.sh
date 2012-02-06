@@ -112,6 +112,7 @@ done
 
 if [ {$FORCE} ]; then
 	set +e
+	verbose 'Force mode enabled'
 fi
 
 # First, make sure mysql binaries are accessible
@@ -128,8 +129,49 @@ fi
 
 # Secondly, apply compatibility tweaks based on MySQL version
 verbose "mysqldump compatibility check..."
-MYSQL_VER=`$MYSQL -V | sed -E -l 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
-verbose "MySQL Version: ${MYSQL_VER}"
+MYSQL_V=`$MYSQL -V | sed -E -l 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
+verbose "MySQL Version: ${MYSQL_V}"
+
+MYSQL_VERSIONS=(${MYSQL_V//./ })
+MYSQL_VER=${MYSQL_VERSIONS[0]}
+MYSQL_MAJ=${MYSQL_VERSIONS[1]}
+MYSQL_MIN=${MYSQL_VERSIONS[2]}
+
+verbose "- Triggers...\t" 1
+if [ "${MYSQL_VER}" -gt 5 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 1 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 11 ]; then
+	NO_TRIGGERS="--skip-triggers"
+	TRIGGERS="--triggers"
+	verbose "enabled"
+else
+	NO_TRIGGERS=""
+	TRIGGERS=""
+	verbose "disabled"
+fi
+
+verbose "- Routines...\t" 1
+if [ "${MYSQL_VER}" -gt 5 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 2 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 13 ]; then
+	ROUTINES="--routines"
+	verbose "enabled"
+else
+	ROUTINES=""
+	verbose "disabled"
+fi
+
+verbose "- Events...\t" 1
+if [ "${MYSQL_VER}" -gt 5 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
+	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 8 ]; then
+	EVENTS="--events"
+	verbose "enabled"
+else
+	EVENTS=""
+	verbose "disabled"
+fi
 
 # Checking if other required parameters are present and valid
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
@@ -178,61 +220,77 @@ for db in $sDatabases; do
     verbose "- dumping '${db}'...\t" 1
     SECONDS=0
 	if [ "$SPLIT_DATABASE_FILES" ]; then
-	    # dumping database tables structure
+		i=1
+		
+	    # DATABASE + TABLE SCHEMA
 	    $MYSQLDUMP $STATIC_PARAMS \
 	        --no-data \
 	        --opt \
 	        --set-charset \
-	        --skip-triggers \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.1-DB+TABLES+VIEWS.sql
+	        $NO_TRIGGERS \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-DB+TABLES+VIEWS.sql
+		
+		(( i++ ))
 
-	    # dumping data
+	    # DATA
 	    $MYSQLDUMP $STATIC_PARAMS \
 	        --force \
 	        --hex-blob \
 	        --no-create-db \
 	        --no-create-info \
 	        --opt \
-	        --skip-triggers \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.2-DATA.sql
+	        $NO_TRIGGERS \
+	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-DATA.sql
+		
+		(( i++ ))
 
-	    # dumping triggers
-	    $MYSQLDUMP $STATIC_PARAMS \
-	        --no-create-db \
-	        --no-create-info \
-	        --no-data \
-	        --skip-opt --create-options \
-	        --triggers \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.3-TRIGGERS.sql
+		# TRIGGERS
+		if [ "${TRIGGERS}" ]; then
+		    $MYSQLDUMP $STATIC_PARAMS \
+		        --no-create-db \
+		        --no-create-info \
+		        --no-data \
+		        --skip-opt --create-options \
+		        $TRIGGERS \
+		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-TRIGGERS.sql
+		fi
+		
+		(( i++ ))
 
-	    # dumping events (works in MySQL 5.1+)
-	    $MYSQLDUMP $STATIC_PARAMS \
-	        --events \
-	        --no-create-db \
-	        --no-create-info \
-	        --no-data \
-	        --skip-opt --create-options \
-	        --skip-triggers \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.4-EVENTS.sql
+	    # EVENTS
+		if [ "${EVENTS}" ]; then
+		    $MYSQLDUMP $STATIC_PARAMS \
+		        $EVENTS \
+		        --no-create-db \
+		        --no-create-info \
+		        --no-data \
+		        --skip-opt --create-options \
+		        $NO_TRIGGERS \
+		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-EVENTS.sql
+		fi
+		
+		(( i++ ))
 
-	    # dumping routines
-	    $MYSQLDUMP $STATIC_PARAMS \
-	        --no-create-db \
-	        --no-create-info \
-	        --no-data \
-	        --routines \
-	        --skip-opt --create-options \
-	        --skip-triggers \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.5-ROUTINES.sql
+	    # ROUTINES
+		if [ "${ROUTINES}" ]; then
+		    $MYSQLDUMP $STATIC_PARAMS \
+		        --no-create-db \
+		        --no-create-info \
+		        --no-data \
+		        $ROUTINES \
+		        --skip-opt --create-options \
+		        $NO_TRIGGERS \
+		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-ROUTINES.sql
+		fi
 	else
 		$MYSQLDUMP $STATIC_PARAMS \
-			--events \
+			$EVENTS \
 			--force \
 			--hex-blob \
 			--opt \
-			--routines \
-			--triggers \
-            --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/$db.sql
+			${ROUTINES} \
+			${TRIGGERS} \
+            --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.sql
     fi
         
     verbose "done in $SECONDS second(s);"
@@ -259,11 +317,11 @@ if [ "$TAR_GZ" ]; then
     $TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
     verbose "done in  $SECONDS second(s)."
 
-    verbose "\nDeleting sql files...\t" 1
+    verbose "\nDeleting sql files...\t"
     rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     verbose "done."
 
-    verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE}" 1
+    verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE}\t" 1
 
     if [ -x "$STAT" ]; then
         output_file_size=`$STAT -f %z $OUTPUT_FILE`

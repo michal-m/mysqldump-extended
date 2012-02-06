@@ -110,7 +110,7 @@ done
 if [ ! -d "$MYSQL_BIN_DIR" ]; then
 	echo "Error: Speciefied MySQL binaries directory is not valid" >&2
 	exit 1
-elif [ ! -x "${MYSQL_BIN_DIR}/mysql" ] || [ ! -x "${MYSQL_BIN_DIR}/mysqldump" ] ; then
+elif [ ! -x "${MYSQL_BIN_DIR}/mysql" -o ! -x "${MYSQL_BIN_DIR}/mysqldump" ] ; then
 	echo "Error: MySQL binaries don't exits or are not executable" >&2
 	exit 1
 else

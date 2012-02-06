@@ -67,6 +67,10 @@ do
             TAR_GZ="tar gz"
             shift 2
             ;;
+        -f | --force)
+            FORCE="force"
+            shift
+            ;;
         -k | --skip-delete-previous)
             SKIP_DELETE_PREVIOUS="skip delete previous"
             shift
@@ -106,6 +110,10 @@ do
     esac
 done
 
+if [ {$FORCE} ]; then
+	set +e
+fi
+
 # First, make sure mysql binaries are accessible
 if [ ! -d "$MYSQL_BIN_DIR" ]; then
 	echo "Error: Speciefied MySQL binaries directory is not valid" >&2
@@ -117,6 +125,11 @@ else
 	MYSQL="${MYSQL_BIN_DIR}/mysql"
 	MYSQLDUMP="${MYSQL_BIN_DIR}/mysqldump"
 fi
+
+# Secondly, apply compatibility tweaks based on MySQL version
+verbose "mysqldump compatibility check..."
+MYSQL_VER=`$MYSQL -V | sed -E -l 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
+verbose "MySQL Version: ${MYSQL_VER}"
 
 # Checking if other required parameters are present and valid
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi

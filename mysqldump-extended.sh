@@ -110,7 +110,7 @@ do
     esac
 done
 
-if [ {$FORCE} ]; then
+if [ "$FORCE" ]; then
 	set +e
 	verbose 'Force mode enabled'
 fi

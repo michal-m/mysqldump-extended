@@ -218,8 +218,13 @@ else
 fi
 
 if [ "$ENCLOSE" ]; then
-	verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
-	mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    if [ -d "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then
+        verbose "\nTemporary folder already exists: ${DUMPS_DIRNAME}."
+    else
+    	verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+    	mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    fi
+    
 	OUTPUT_PATH=${OUTPUT_DIR}/${DUMPS_DIRNAME}
 else
 	OUTPUT_PATH=${OUTPUT_DIR}

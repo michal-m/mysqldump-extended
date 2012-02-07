@@ -48,6 +48,7 @@ ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
     -F, --output-file <name>
                         Name of the output file. Implies -z.
                         Default: mysqldumps.tar.gz
+    -f, --force         Carry on on errors.
     -k, --skip-delete-previous
                         Skips deleting previous dump file/folder if exists.
     -p, --password <pass>

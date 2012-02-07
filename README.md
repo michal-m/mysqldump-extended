@@ -84,6 +84,19 @@ Splits database dumps onto separate files and tarballs the dumps.
 
 Overrides the default hostname, username, output directory and fileneame (implies tarballing as well) and splits the database dump into separate files.
 
+## Notes
+This script does not make dumps of the following databases:
+
+- information_schema
+- mysql
+- performance_schema
+- phpmyadmin
+- test
+
+The reason for this is you don't need any of those dumped in normal conditions. The fact that you make dumps with all additional table data (events, routines, triggers) and there's a separate dump with privileges makes dumping mysql native databases obsolete.
+
+The script doesn't dump phpMyAdmin database either, but that's because I don't want it to. ;)
+
 ## Acknowledgments
 This script is heavily based on MySQL Backup scripts by [Sonia Hamilton](http://soniahamilton.wordpress.com/2005/11/16/backup-multiple-databases-into-separate-files/) and [Darren Cassar](http://mysqlpreacher.com/wordpress/2010/08/dumping-ddl-mysqldump-tables-stored-procedures-events-triggers-separately/).
 

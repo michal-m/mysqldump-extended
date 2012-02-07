@@ -11,12 +11,13 @@ This files follow [mysqldump output order](http://stackoverflow.com/a/9136706/10
   2. Tables and Views
      1. Table schema (inc. constraints)
      2. Table data
-     3. Table triggers
+     3. Table triggers (MySQL 5.0.11+)
   3. Views - temporary tables only!
-  4. Events.
-  5. Routines.
-- **The dumped files can be optionally tarballed+gzipped after the dump process is completed**
+  4. Events (MySQL 5.1.8+)
+  5. Routines (MySQL 5.0.13+/5.1.2+)
+- **Compatible with MySQL 4.0+**
 - **Includes a complete privileges dump**
+- **The dumped files can be optionally tarballed+gzipped after the dump process is completed**
 
 ## Requirements
 For this script to work there must be a user defined in the database with following permissions:

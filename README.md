@@ -32,6 +32,8 @@ ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
     -B, --bin-dir <path>
                         Path to folder containing MySQL binaries.
                         Default: /usr/local/bin
+    -b, --subdir        Contain dumped files in a subfolder. If enabled
+						subfolder name is `mysqldumps_%Y%m%d`
     -c, --default-charset <charset>
                         Same as --default-character-set in mysqldump.
                         Default: utf8
@@ -61,6 +63,7 @@ ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
                         Default: mysqldump
     -v, --verbose       Print out details of the backup process.
     -z, --tar-gz        Tarball and Gzip dumped files.
+						Implies -b
                         
 
 ### Examples

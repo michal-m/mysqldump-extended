@@ -23,6 +23,7 @@ set -e
 
 # Initial Variable definitions
 DATE=`date +'%Y%m%d'`
+STAT="/usr/bin/stat"
 TAR="/usr/bin/tar"
 MYSQL_BIN_DIR="/usr/local/bin"
 MYSQL_USER="mysqldump"
@@ -40,6 +41,10 @@ do
             if [ -z "$2" ]; then echo "Error: MySQL binaries directory not specified" >&2; exit 1; fi
             MYSQL_BIN_DIR=$2
             shift 2
+            ;;
+        -b | --subdir)
+            SUBDIR="subdir"
+            shift
             ;;
         -c | --default-charset)
             if [ -z "$2" ]; then echo "Error: Default character set not specified" >&2; exit 1; fi
@@ -95,6 +100,7 @@ do
             ;;
         -z | --tar-gz)
             TAR_GZ="tar gz"
+			SUBDIR="subdir"
             shift
             ;;
 #        --) # End of all options
@@ -183,10 +189,7 @@ if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not exec
 
 # OK, let's roll
 verbose "START\n"
-
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
-
-STAT="/usr/bin/stat"
 
 if [ "$SKIP_DELETE_PREVIOUS" ]; then
     verbose "NOT deleting any old backups..."
@@ -195,7 +198,7 @@ else
     
     if [ "$TAR_GZ" ]; then
         rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
-    else
+	elif [ "$SUBDIR" ]; then 
         rm -fRv ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
 fi
@@ -212,8 +215,13 @@ else
     sDatabases=${aDatabases[*]}
 fi
 
-verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
-mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+if [ "$SUBDIR" ]; then
+	verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+	mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+	OUTPUT_PATH=${OUTPUT_DIR}/${DUMPS_DIRNAME}
+else
+	OUTPUT_PATH=${OUTPUT_DIR}
+fi
 
 verbose "Beginning dump process..."
 for db in $sDatabases; do
@@ -228,7 +236,7 @@ for db in $sDatabases; do
 	        --opt \
 	        --set-charset \
 	        $NO_TRIGGERS \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-DB+TABLES+VIEWS.sql
+	        --databases $db > ${OUTPUT_PATH}/${db}.${i}-DB+TABLES+VIEWS.sql
 		
 		(( i++ ))
 
@@ -240,7 +248,7 @@ for db in $sDatabases; do
 	        --no-create-info \
 	        --opt \
 	        $NO_TRIGGERS \
-	        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-DATA.sql
+	        --databases $db > ${OUTPUT_PATH}/${db}.${i}-DATA.sql
 		
 		(( i++ ))
 
@@ -252,7 +260,7 @@ for db in $sDatabases; do
 		        --no-data \
 		        --skip-opt --create-options \
 		        $TRIGGERS \
-		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-TRIGGERS.sql
+		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-TRIGGERS.sql
 		fi
 		
 		(( i++ ))
@@ -266,7 +274,7 @@ for db in $sDatabases; do
 		        --no-data \
 		        --skip-opt --create-options \
 		        $NO_TRIGGERS \
-		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-EVENTS.sql
+		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-EVENTS.sql
 		fi
 		
 		(( i++ ))
@@ -280,7 +288,7 @@ for db in $sDatabases; do
 		        $ROUTINES \
 		        --skip-opt --create-options \
 		        $NO_TRIGGERS \
-		        --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.${i}-ROUTINES.sql
+		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-ROUTINES.sql
 		fi
 	else
 		$MYSQLDUMP $STATIC_PARAMS \
@@ -290,7 +298,7 @@ for db in $sDatabases; do
 			--opt \
 			${ROUTINES} \
 			${TRIGGERS} \
-            --databases $db > ${OUTPUT_DIR}/${DUMPS_DIRNAME}/${db}.sql
+            --databases $db > ${OUTPUT_PATH}/${db}.sql
     fi
         
     verbose "done in $SECONDS second(s);"
@@ -304,7 +312,7 @@ if [ -z "$DATABASE_NAME" ]; then
             'SHOW GRANTS FOR ''', user, '''@''', host, ''';'
             ) AS query FROM mysql.user" | \
             $MYSQL $STATIC_PARAMS | \
-            sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${OUTPUT_DIR}/${DUMPS_DIRNAME}/PRIVILEGES.sql"
+            sed 's/\(GRANT .*\)/\1;/;s/^\(Grants for .*\)/## \1 ##/;/##/{x;p;x;}' > "${OUTPUT_PATH}/PRIVILEGES.sql"
     verbose "done in  $SECONDS second(s)."
 fi
 

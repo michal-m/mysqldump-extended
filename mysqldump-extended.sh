@@ -129,7 +129,7 @@ fi
 
 # Secondly, apply compatibility tweaks based on MySQL version
 verbose "mysqldump compatibility check..."
-MYSQL_V=`$MYSQL -V | sed -E -l 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
+MYSQL_V=`$MYSQL -V | sed -E 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
 verbose "MySQL Version: ${MYSQL_V}"
 
 MYSQL_VERSIONS=(${MYSQL_V//./ })

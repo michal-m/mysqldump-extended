@@ -33,7 +33,7 @@ ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
     -B, --bin-dir <path>
                         Path to folder containing MySQL binaries.
                         Default: /usr/local/bin
-    -b, --subdir        Contain dumped files in a subfolder. If enabled
+    -e, --enclose       Enclose dumped files in a subfolder. If enabled
 						subfolder name is `mysqldumps_%Y%m%d`
     -c, --default-charset <charset>
                         Same as --default-character-set in mysqldump.
@@ -52,8 +52,8 @@ ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
                         Name of the output file. Implies -z.
                         Default: mysqldumps.tar.gz
     -f, --force         Carry on on errors.
-    -k, --skip-delete-previous
-                        Skips deleting previous dump file/folder if exists.
+    -o, --overwrite		Overwrite existing dumps if enclosed or tarballed.
+						Requires -e
     -p, --password <pass>
                         Password to use when connecting.
                         *Required*

@@ -42,10 +42,6 @@ do
             MYSQL_BIN_DIR=$2
             shift 2
             ;;
-        -b | --subdir)
-            SUBDIR="subdir"
-            shift
-            ;;
         -c | --default-charset)
             if [ -z "$2" ]; then echo "Error: Default character set not specified" >&2; exit 1; fi
             MYSQL_CHARSET=$2
@@ -61,10 +57,9 @@ do
             OUTPUT_DIR=$2
             shift 2
             ;;
-        -h | --host)
-            if [ -z "$2" ]; then echo "Error: MySQL server hostname not specified" >&2; exit 1; fi
-            MYSQL_HOST=$2
-            shift 2
+        -e | --enclose)
+            ENCLOSE="enclose"
+            shift
             ;;
         -F | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
@@ -76,8 +71,13 @@ do
             FORCE="force"
             shift
             ;;
-        -k | --skip-delete-previous)
-            SKIP_DELETE_PREVIOUS="skip delete previous"
+        -h | --host)
+            if [ -z "$2" ]; then echo "Error: MySQL server hostname not specified" >&2; exit 1; fi
+            MYSQL_HOST=$2
+            shift 2
+            ;;
+        -o | --overwrite)
+            OVERWRITE="overwrite"
             shift
             ;;
         -p | --pass)
@@ -100,7 +100,7 @@ do
             ;;
         -z | --tar-gz)
             TAR_GZ="tar gz"
-			SUBDIR="subdir"
+            ENCLOSE="subdir"
             shift
             ;;
 #        --) # End of all options
@@ -118,7 +118,7 @@ done
 
 if [ "$FORCE" ]; then
 	set +e
-	verbose 'Force mode enabled'
+	verbose '!!! Force mode enabled !!!'
 fi
 
 # First, make sure mysql binaries are accessible
@@ -134,6 +134,7 @@ else
 fi
 
 # Secondly, apply compatibility tweaks based on MySQL version
+verbose "---------------------------------------------------"
 verbose "mysqldump compatibility check..."
 MYSQL_V=`$MYSQL -V | sed -E 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
 verbose "MySQL Version: ${MYSQL_V}"
@@ -178,29 +179,30 @@ else
 	EVENTS=""
 	verbose "disabled"
 fi
+verbose "---------------------------------------------------"
 
 # Checking if other required parameters are present and valid
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
 if [ ! -w "$OUTPUT_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
-if [ -e "${OUTPUT_DIR}/${OUTPUT_FILE}" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
+if [ "$TAR_GZ" -a -e "${OUTPUT_DIR}/${OUTPUT_FILE}" -a -z "$OVERWRITE" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
 if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
 if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then echo "Error: Output directory already contains a file/folder with the same name as temporary folder required: ${OUTPUT_DIR}/$DUMPS_DIRNAME" >&2; exit 1; fi
 if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not executable (looking at: $TAR)" >&2; exit 1; fi
 
 # OK, let's roll
-verbose "START\n"
+verbose "\nSTART\n"
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 
-if [ "$SKIP_DELETE_PREVIOUS" ]; then
-    verbose "NOT deleting any old backups..."
-else
+if [ "$OVERWRITE" -a "$ENCLOSE" ]; then
     verbose "Deleting any old backups..."
     
     if [ "$TAR_GZ" ]; then
-        rm -fv ${OUTPUT_DIR}/mysqldump*.tar.gz
-	elif [ "$SUBDIR" ]; then 
+        rm -fv ${OUTPUT_DIR}/${OUTPUT_FILE}
+	else
         rm -fRv ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
+else
+    verbose "NOT deleting any old backups..."
 fi
 
 if [ "$DATABASE_NAME" ]; then
@@ -215,7 +217,7 @@ else
     sDatabases=${aDatabases[*]}
 fi
 
-if [ "$SUBDIR" ]; then
+if [ "$ENCLOSE" ]; then
 	verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
 	mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
 	OUTPUT_PATH=${OUTPUT_DIR}/${DUMPS_DIRNAME}

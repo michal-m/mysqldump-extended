@@ -36,7 +36,7 @@ DUMPS_DIRNAME="mysqldumps_${DATE}"
 # Parse commandline options first
 while :
 do
-    case "$1" in  
+    case "$1" in
         -B | --bin-dir)
             if [ -z "$2" ]; then echo "Error: MySQL binaries directory not specified" >&2; exit 1; fi
             MYSQL_BIN_DIR=$2
@@ -119,20 +119,20 @@ done
 verbose "-- Dump process started on `date`"
 
 if [ "$FORCE" ]; then
-	set +e
-	verbose "!!! Force mode enabled !!!"
+    set +e
+    verbose "!!! Force mode enabled !!!"
 fi
 
 # First, make sure mysql binaries are accessible
 if [ ! -d "$MYSQL_BIN_DIR" ]; then
-	echo "Error: Speciefied MySQL binaries directory is not valid" >&2
-	exit 1
+    echo "Error: Speciefied MySQL binaries directory is not valid" >&2
+    exit 1
 elif [ ! -x "${MYSQL_BIN_DIR}/mysql" -o ! -x "${MYSQL_BIN_DIR}/mysqldump" ] ; then
-	echo "Error: MySQL binaries don't exits or are not executable" >&2
-	exit 1
+    echo "Error: MySQL binaries don't exits or are not executable" >&2
+    exit 1
 else
-	MYSQL="${MYSQL_BIN_DIR}/mysql"
-	MYSQLDUMP="${MYSQL_BIN_DIR}/mysqldump"
+    MYSQL="${MYSQL_BIN_DIR}/mysql"
+    MYSQLDUMP="${MYSQL_BIN_DIR}/mysqldump"
 fi
 
 # Secondly, apply compatibility tweaks based on MySQL version
@@ -148,38 +148,38 @@ MYSQL_MIN=${MYSQL_VERSIONS[2]}
 
 verbose "- Triggers..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 1 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 11 ]; then
-	NO_TRIGGERS="--skip-triggers"
-	TRIGGERS="--triggers"
-	verbose "enabled"
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 1 -o \
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 11 ]; then
+    NO_TRIGGERS="--skip-triggers"
+    TRIGGERS="--triggers"
+    verbose "enabled"
 else
-	NO_TRIGGERS=""
-	TRIGGERS=""
-	verbose "disabled"
+    NO_TRIGGERS=""
+    TRIGGERS=""
+    verbose "disabled"
 fi
 
 verbose "- Routines..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 2 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 13 ]; then
-	ROUTINES="--routines"
-	verbose "enabled"
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 2 -o \
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 13 ]; then
+    ROUTINES="--routines"
+    verbose "enabled"
 else
-	ROUTINES=""
-	verbose "disabled"
+    ROUTINES=""
+    verbose "disabled"
 fi
 
 verbose "- Events..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
-	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 8 ]; then
-	EVENTS="--events"
-	verbose "enabled"
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
+     "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 8 ]; then
+    EVENTS="--events"
+    verbose "enabled"
 else
-	EVENTS=""
-	verbose "disabled"
+    EVENTS=""
+    verbose "disabled"
 fi
 verbose "---------------------------------------------------\n"
 
@@ -196,10 +196,10 @@ STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=
 
 if [ "$OVERWRITE" -a "$ENCLOSE" ]; then
     verbose "Deleting any old backups..."
-    
+
     if [ "$TAR_GZ" ]; then
         rm -fv ${OUTPUT_DIR}/${OUTPUT_FILE}
-	else
+    else
         rm -fRv ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
 else
@@ -212,102 +212,107 @@ if [ "$DATABASE_NAME" ]; then
 else
     verbose "\nRetrieving list of all databases..." 1
     aDatabases=( $($MYSQL $STATIC_PARAMS -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
-    verbose "found ${#aDatabases[@]}."
 
-    sDatabases=${aDatabases[*]}
+    if [ -z "$aDatabases" ]; then
+        verbose "found NONE."
+        sDatabases=""
+    else
+        verbose "found ${#aDatabases[@]}."
+        sDatabases=${aDatabases[*]}
+    fi
 fi
 
 if [ "$ENCLOSE" ]; then
     if [ -d "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then
         verbose "\nTemporary folder already exists: ${DUMPS_DIRNAME}."
     else
-    	verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
-    	mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+        verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+        mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
-    
-	OUTPUT_PATH=${OUTPUT_DIR}/${DUMPS_DIRNAME}
+
+    OUTPUT_PATH=${OUTPUT_DIR}/${DUMPS_DIRNAME}
 else
-	OUTPUT_PATH=${OUTPUT_DIR}
+    OUTPUT_PATH=${OUTPUT_DIR}
 fi
 
 verbose "Beginning dump process..."
 for db in $sDatabases; do
     verbose "- dumping '${db}'..." 1
     SECONDS=0
-	if [ "$SPLIT_DATABASE_FILES" ]; then
-		i=1
-		
-	    # DATABASE + TABLE SCHEMA
-	    $MYSQLDUMP $STATIC_PARAMS \
-	        --no-data \
-	        --opt \
-	        --set-charset \
-	        $NO_TRIGGERS \
-	        --databases $db > ${OUTPUT_PATH}/${db}.${i}-DB+TABLES+VIEWS.sql
-		
-		(( i++ ))
+    if [ "$SPLIT_DATABASE_FILES" ]; then
+        i=1
 
-	    # DATA
-	    $MYSQLDUMP $STATIC_PARAMS \
-	        --force \
-	        --hex-blob \
-	        --no-create-db \
-	        --no-create-info \
-	        --opt \
-	        $NO_TRIGGERS \
-	        --databases $db > ${OUTPUT_PATH}/${db}.${i}-DATA.sql
-		
-		(( i++ ))
+        # DATABASE + TABLE SCHEMA
+        $MYSQLDUMP $STATIC_PARAMS \
+            --no-data \
+            --opt \
+            --set-charset \
+            $NO_TRIGGERS \
+            --databases $db > ${OUTPUT_PATH}/${db}.${i}-DB+TABLES+VIEWS.sql
 
-		# TRIGGERS
-		if [ "${TRIGGERS}" ]; then
-		    $MYSQLDUMP $STATIC_PARAMS \
-		        --no-create-db \
-		        --no-create-info \
-		        --no-data \
-		        --skip-opt --create-options \
-		        $TRIGGERS \
-		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-TRIGGERS.sql
-		fi
-		
-		(( i++ ))
+        (( i++ ))
 
-	    # EVENTS
-		if [ "${EVENTS}" ]; then
-		    $MYSQLDUMP $STATIC_PARAMS \
-		        $EVENTS \
-		        --no-create-db \
-		        --no-create-info \
-		        --no-data \
-		        --skip-opt --create-options \
-		        $NO_TRIGGERS \
-		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-EVENTS.sql
-		fi
-		
-		(( i++ ))
+        # DATA
+        $MYSQLDUMP $STATIC_PARAMS \
+            --force \
+            --hex-blob \
+            --no-create-db \
+            --no-create-info \
+            --opt \
+            $NO_TRIGGERS \
+            --databases $db > ${OUTPUT_PATH}/${db}.${i}-DATA.sql
 
-	    # ROUTINES
-		if [ "${ROUTINES}" ]; then
-		    $MYSQLDUMP $STATIC_PARAMS \
-		        --no-create-db \
-		        --no-create-info \
-		        --no-data \
-		        $ROUTINES \
-		        --skip-opt --create-options \
-		        $NO_TRIGGERS \
-		        --databases $db > ${OUTPUT_PATH}/${db}.${i}-ROUTINES.sql
-		fi
-	else
-		$MYSQLDUMP $STATIC_PARAMS \
-			$EVENTS \
-			--force \
-			--hex-blob \
-			--opt \
-			${ROUTINES} \
-			${TRIGGERS} \
+        (( i++ ))
+
+        # TRIGGERS
+        if [ "${TRIGGERS}" ]; then
+            $MYSQLDUMP $STATIC_PARAMS \
+                --no-create-db \
+                --no-create-info \
+                --no-data \
+                --skip-opt --create-options \
+                $TRIGGERS \
+                --databases $db > ${OUTPUT_PATH}/${db}.${i}-TRIGGERS.sql
+        fi
+
+        (( i++ ))
+
+        # EVENTS
+        if [ "${EVENTS}" ]; then
+            $MYSQLDUMP $STATIC_PARAMS \
+                $EVENTS \
+                --no-create-db \
+                --no-create-info \
+                --no-data \
+                --skip-opt --create-options \
+                $NO_TRIGGERS \
+                --databases $db > ${OUTPUT_PATH}/${db}.${i}-EVENTS.sql
+        fi
+
+        (( i++ ))
+
+        # ROUTINES
+        if [ "${ROUTINES}" ]; then
+            $MYSQLDUMP $STATIC_PARAMS \
+                --no-create-db \
+                --no-create-info \
+                --no-data \
+                $ROUTINES \
+                --skip-opt --create-options \
+                $NO_TRIGGERS \
+                --databases $db > ${OUTPUT_PATH}/${db}.${i}-ROUTINES.sql
+        fi
+    else
+        $MYSQLDUMP $STATIC_PARAMS \
+            $EVENTS \
+            --force \
+            --hex-blob \
+            --opt \
+            ${ROUTINES} \
+            ${TRIGGERS} \
             --databases $db > ${OUTPUT_PATH}/${db}.sql
     fi
-        
+
     verbose "done in $SECONDS second(s)"
 done
 

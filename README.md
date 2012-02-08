@@ -12,9 +12,8 @@ This files follow [mysqldump output order](http://stackoverflow.com/a/9136706/10
      1. Table schema (inc. constraints)
      2. Table data
      3. Table triggers (MySQL 5.0.11+)
-  3. Views - temporary tables only!
-  4. Events (MySQL 5.1.8+)
-  5. Routines (MySQL 5.0.13+/5.1.2+)
+  3. Events (MySQL 5.1.8+)
+  4. Routines (MySQL 5.0.13+/5.1.2+)
 - **Compatible with MySQL 4.0+**
 - **Includes a complete privileges dump**
 - **The dumped files can be optionally tarballed+gzipped after the dump process is completed**
@@ -23,8 +22,17 @@ This files follow [mysqldump output order](http://stackoverflow.com/a/9136706/10
 For this script to work there must be a user defined in the database with following permissions:
 `SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW`.
 An example code to create such user would look like this:
-`GRANT SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW 
-ON *.* TO 'username'@'hostname' IDENTIFIED BY PASSWORD 'password';`
+
+    GRANT
+        EVENT,
+        LOCK TABLES,
+        SELECT,
+        SHOW DATABASES,
+        SHOW VIEW 
+        TRIGGER,
+    ON *.*
+    TO 'username'@'hostname'
+    IDENTIFIED BY PASSWORD 'password'
 
 ## Usage
 `mysqldump-extended.sh -p <password> OPTIONS`

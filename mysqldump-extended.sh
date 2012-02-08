@@ -188,7 +188,7 @@ if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory
 if [ ! -w "$OUTPUT_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
 if [ "$TAR_GZ" -a -e "${OUTPUT_DIR}/${OUTPUT_FILE}" -a -z "$OVERWRITE" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
 if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
-if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then echo "Error: Output directory already contains a file/folder with the same name as temporary folder required: ${OUTPUT_DIR}/$DUMPS_DIRNAME" >&2; exit 1; fi
+if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" -a -z "$OVERWRITE" ]; then echo "Error: Output directory already contains a file/folder with the same name as temporary folder required: ${OUTPUT_DIR}/$DUMPS_DIRNAME" >&2; exit 1; fi
 if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not executable (looking at: $TAR)" >&2; exit 1; fi
 
 # OK, let's roll

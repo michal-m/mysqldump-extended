@@ -116,9 +116,11 @@ do
     esac
 done
 
+verbose "-- Dump process started on `date`"
+
 if [ "$FORCE" ]; then
 	set +e
-	verbose '!!! Force mode enabled !!!'
+	verbose "!!! Force mode enabled !!!"
 fi
 
 # First, make sure mysql binaries are accessible
@@ -134,7 +136,7 @@ else
 fi
 
 # Secondly, apply compatibility tweaks based on MySQL version
-verbose "---------------------------------------------------"
+verbose "\n---------------------------------------------------"
 verbose "mysqldump compatibility check..."
 MYSQL_V=`$MYSQL -V | sed -E 's/.*Distrib ([0-9]\.[0-9]+\.[0-9]+).*/\1/'`
 verbose "MySQL Version: ${MYSQL_V}"
@@ -144,7 +146,7 @@ MYSQL_VER=${MYSQL_VERSIONS[0]}
 MYSQL_MAJ=${MYSQL_VERSIONS[1]}
 MYSQL_MIN=${MYSQL_VERSIONS[2]}
 
-verbose "- Triggers...\t" 1
+verbose "- Triggers..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 1 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 0 -a "${MYSQL_MIN}" -ge 11 ]; then
@@ -157,7 +159,7 @@ else
 	verbose "disabled"
 fi
 
-verbose "- Routines...\t" 1
+verbose "- Routines..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 2 -o \
@@ -169,7 +171,7 @@ else
 	verbose "disabled"
 fi
 
-verbose "- Events...\t" 1
+verbose "- Events..." 1
 if [ "${MYSQL_VER}" -gt 5 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -ge 2 -o \
 	 "${MYSQL_VER}" -eq 5 -a "${MYSQL_MAJ}" -eq 1 -a "${MYSQL_MIN}" -ge 8 ]; then
@@ -179,7 +181,7 @@ else
 	EVENTS=""
 	verbose "disabled"
 fi
-verbose "---------------------------------------------------"
+verbose "---------------------------------------------------\n"
 
 # Checking if other required parameters are present and valid
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
@@ -190,7 +192,6 @@ if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then echo "Error: Output directory a
 if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not executable (looking at: $TAR)" >&2; exit 1; fi
 
 # OK, let's roll
-verbose "\nSTART\n"
 STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
 
 if [ "$OVERWRITE" -a "$ENCLOSE" ]; then
@@ -209,10 +210,9 @@ if [ "$DATABASE_NAME" ]; then
     verbose "\nDatabase to be dumped: $DATABASE_NAME"
     sDatabases=$DATABASE_NAME
 else
-    verbose "\nRetrieving list of all databases...\t" 1
+    verbose "\nRetrieving list of all databases..." 1
     aDatabases=( $($MYSQL $STATIC_PARAMS -N -e "SHOW DATABASES;" | grep -Ev "(test|information_schema|mysql|performance_schema|phpmyadmin)") )
-    verbose "done."
-    verbose "Found ${#aDatabases[@]} valid database(s).\n"
+    verbose "found ${#aDatabases[@]}."
 
     sDatabases=${aDatabases[*]}
 fi
@@ -232,7 +232,7 @@ fi
 
 verbose "Beginning dump process..."
 for db in $sDatabases; do
-    verbose "- dumping '${db}'...\t" 1
+    verbose "- dumping '${db}'..." 1
     SECONDS=0
 	if [ "$SPLIT_DATABASE_FILES" ]; then
 		i=1
@@ -308,12 +308,12 @@ for db in $sDatabases; do
             --databases $db > ${OUTPUT_PATH}/${db}.sql
     fi
         
-    verbose "done in $SECONDS second(s);"
+    verbose "done in $SECONDS second(s)"
 done
 
 # We're not going to dump Privileges if only a single Database dumped
 if [ -z "$DATABASE_NAME" ]; then
-    verbose "- dumping PRIVILEGES...\t" 1
+    verbose "- dumping PRIVILEGES..." 1
     SECONDS=0
     $MYSQL $STATIC_PARAMS -B -N -e "SELECT DISTINCT CONCAT(
             'SHOW GRANTS FOR ''', user, '''@''', host, ''';'
@@ -326,24 +326,24 @@ fi
 verbose "Dump process completed."
 
 if [ "$TAR_GZ" ]; then
-    verbose "\nTarballing all sql dumps...\t" 1
+    verbose "\nTarballing all sql dumps..." 1
     cd ${OUTPUT_DIR}
     SECONDS=0
     $TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
     verbose "done in  $SECONDS second(s)."
 
-    verbose "\nDeleting sql files...\t"
+    verbose "\nDeleting sql files..."
     rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
-    verbose "done."
+    verbose "...done."
 
     verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE}\t" 1
 
     if [ -x "$STAT" ]; then
         output_file_size=`$STAT -f %z $OUTPUT_FILE`
-        verbose " (${output_file_size} bytes).\n"
+        verbose "(${output_file_size} bytes).\n"
     else
         verbose "\n"
     fi
 fi
 
-verbose "END."
+verbose "-- Dump process completed on `date`"

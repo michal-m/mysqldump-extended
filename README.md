@@ -3,9 +3,9 @@
 **mysqldump-extended** is a handy wrapper for mysqldump binary. It provides several additional features that mysqldump doesn't, e.g. each database is dumped in separate set of files, which makes reading and analysing dumped files a lot easier.
 
 ## Key features
-- **Databases dumped in separate set of files**  
+- **Databases dumped in separate set of files**
 The output is no longer one large file, but instead each database has its own file (or set of files).
-- **Each Database can be dumped into a separate set of files**  
+- **Each Database can be dumped into a separate set of files**
 This files follow [mysqldump output order](http://stackoverflow.com/a/9136706/108878):
   1. Database
   2. Tables and Views
@@ -23,16 +23,17 @@ For this script to work there must be a user defined in the database with follow
 `SELECT, SHOW DATABASES, LOCK TABLES, EVENT, TRIGGER, SHOW VIEW`.
 An example code to create such user would look like this:
 
+    CREATE USER 'username'@'hostname' IDENTIFIED BY 'password';
+
     GRANT
         EVENT,
         LOCK TABLES,
         SELECT,
         SHOW DATABASES,
-        SHOW VIEW 
-        TRIGGER,
+        SHOW VIEW,
+        TRIGGER
     ON *.*
-    TO 'username'@'hostname'
-    IDENTIFIED BY PASSWORD 'password'
+    TO 'username'@'hostname';
 
 ## Usage
 `mysqldump-extended.sh -p <password> OPTIONS`
@@ -73,7 +74,7 @@ An example code to create such user would look like this:
     -v, --verbose       Print out details of the backup process.
     -z, --tar-gz        Tarball and Gzip dumped files.
 						Implies -b
-                        
+
 
 ### Examples
 `mysqldump-extended.sh -h 127.0.0.1 -u backup-client -p password`

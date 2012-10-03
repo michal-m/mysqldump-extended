@@ -100,7 +100,7 @@ do
             ;;
         -z | --tar-gz)
             TAR_GZ="tar gz"
-            ENCLOSE="subdir"
+            ENCLOSE="enclose"
             shift
             ;;
 #        --) # End of all options

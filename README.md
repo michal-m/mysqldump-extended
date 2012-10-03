@@ -73,7 +73,7 @@ An example code to create such user would look like this:
                         Default: mysqldump
     -v, --verbose       Print out details of the backup process.
     -z, --tar-gz        Tarball and Gzip dumped files.
-						Implies -b
+						Implies -e
 
 
 ### Examples

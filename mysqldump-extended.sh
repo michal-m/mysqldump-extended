@@ -341,7 +341,13 @@ if [ "$TAR_GZ" ]; then
     verbose "done in  $SECONDS second(s)."
 
     verbose "\nDeleting sql files..."
-    rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+
+    if [ "$VERBOSE" ]; then
+        rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    else
+        rm -fR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
+    fi
+
     verbose "...done."
 
     verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE_EXT}\t" 1

@@ -63,8 +63,11 @@ do
             ;;
         -F | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
+            DUMPS_DIRNAME=$2
             OUTPUT_FILE=$2
+            OUTPUT_FILE_EXT=${2}.tar.gz
             TAR_GZ="tar gz"
+            ENCLOSE="enclose"
             shift 2
             ;;
         -f | --force)
@@ -334,17 +337,17 @@ if [ "$TAR_GZ" ]; then
     verbose "\nTarballing all sql dumps..." 1
     cd ${OUTPUT_DIR}
     SECONDS=0
-    $TAR cfz ${OUTPUT_FILE} ${DUMPS_DIRNAME}
+    $TAR cfz ${OUTPUT_FILE_EXT} ${DUMPS_DIRNAME}
     verbose "done in  $SECONDS second(s)."
 
     verbose "\nDeleting sql files..."
     rm -fvR ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     verbose "...done."
 
-    verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE}\t" 1
+    verbose "\nFinal dump file: ${OUTPUT_DIR}/${OUTPUT_FILE_EXT}\t" 1
 
     if [ -x "$STAT" ]; then
-        output_file_size=`$STAT -f %z $OUTPUT_FILE`
+        output_file_size=`$STAT -f %z $OUTPUT_FILE_EXT`
         verbose "(${output_file_size} bytes).\n"
     else
         verbose "\n"

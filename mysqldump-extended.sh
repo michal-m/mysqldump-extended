@@ -67,6 +67,7 @@ do
             OUTPUT_FILE=$2
             OUTPUT_FILE_EXT=${2}.tar.gz
             TAR_GZ="tar gz"
+            ENCLOSE="enclose"
             shift 2
             ;;
         -f | --force)

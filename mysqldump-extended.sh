@@ -63,6 +63,7 @@ do
             ;;
         -F | --output-file)
             if [ -z "$2" ]; then echo "Error: Output filename not specified" >&2; exit 1; fi
+            DUMPS_DIRNAME=$2
             OUTPUT_FILE=$2
             OUTPUT_FILE_EXT=${2}.tar.gz
             TAR_GZ="tar gz"

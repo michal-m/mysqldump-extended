@@ -59,6 +59,7 @@ An example code to create such user would look like this:
                         Default: localhost
     -F, --output-file <name>
                         Name of the output file without extension. Implies -z.
+                        When specified it is used for the container folder (-e), too.
                         Default: mysqldumps
     -f, --force         Carry on on errors.
     -o, --overwrite		Overwrite existing dumps if enclosed or tarballed.

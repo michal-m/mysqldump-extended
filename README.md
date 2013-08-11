@@ -58,8 +58,8 @@ An example code to create such user would look like this:
     -h, --host <name>   Database server hostname.
                         Default: localhost
     -F, --output-file <name>
-                        Name of the output file. Implies -z.
-                        Default: mysqldumps.tar.gz
+                        Name of the output file without extension. Implies -z.
+                        Default: mysqldumps
     -f, --force         Carry on on errors.
     -o, --overwrite		Overwrite existing dumps if enclosed or tarballed.
 						Requires -e
@@ -89,7 +89,7 @@ Dumps only a single database 'test' with --default-character-set set to 'latin1'
 
 Splits database dumps onto separate files and tarballs the dumps.
 
-`mysqldump-extended.sh -h 127.0.0.1 -u backup-client -p password -D /var/backups -F mysql-backup.tar.gz -s -v`
+`mysqldump-extended.sh -h 127.0.0.1 -u backup-client -p password -D /var/backups -F mysql-backup -s -v`
 
 Overrides the default hostname, username, output directory and fileneame (implies tarballing as well) and splits the database dump into separate files.
 

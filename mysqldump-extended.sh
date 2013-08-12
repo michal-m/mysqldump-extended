@@ -229,7 +229,7 @@ if [ "$ENCLOSE" ]; then
     if [ -d "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then
         verbose "\nTemporary folder already exists: ${DUMPS_DIRNAME}."
     else
-        verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+        verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}"
         mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
 

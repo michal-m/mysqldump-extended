@@ -73,6 +73,11 @@ An example code to create such user would look like this:
     -u, --user <name>   User for login if not current.
                         Default: mysqldump
     -v, --verbose       Print out details of the backup process.
+    -x, --extra-dump-options
+                        Extra mysqldump options you might want to pass.
+                        All options have to be encapsulated in quotes, e.g.
+                        -x "--skip-add-locks --verbose"
+                        These params are passed each time mysqldump is called.
     -z, --tar-gz        Tarball and Gzip dumped files.
 						Implies -e
 

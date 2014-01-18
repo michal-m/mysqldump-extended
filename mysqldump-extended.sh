@@ -101,6 +101,10 @@ do
             VERBOSE="verbose"
             shift
             ;;
+        -x | --extra-dump-options)
+            X_OPTIONS=$2
+            shift 2
+            ;;
         -z | --tar-gz)
             TAR_GZ="tar gz"
             ENCLOSE="enclose"
@@ -229,7 +233,7 @@ if [ "$ENCLOSE" ]; then
     if [ -d "${OUTPUT_DIR}/${DUMPS_DIRNAME}" ]; then
         verbose "\nTemporary folder already exists: ${DUMPS_DIRNAME}."
     else
-        verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}."
+        verbose "\nCreating temporary folder: ${DUMPS_DIRNAME}"
         mkdir ${OUTPUT_DIR}/${DUMPS_DIRNAME}
     fi
 
@@ -251,7 +255,8 @@ for db in $sDatabases; do
             --opt \
             --set-charset \
             $NO_TRIGGERS \
-            --databases $db > ${OUTPUT_PATH}/${db}.${i}-DB+TABLES+VIEWS.sql
+            --databases $db \
+            $X_OPTIONS > ${OUTPUT_PATH}/${db}.${i}-DB+TABLES+VIEWS.sql
 
         (( i++ ))
 
@@ -263,7 +268,8 @@ for db in $sDatabases; do
             --no-create-info \
             --opt \
             $NO_TRIGGERS \
-            --databases $db > ${OUTPUT_PATH}/${db}.${i}-DATA.sql
+            --databases $db \
+            $X_OPTIONS > ${OUTPUT_PATH}/${db}.${i}-DATA.sql
 
         (( i++ ))
 
@@ -275,7 +281,8 @@ for db in $sDatabases; do
                 --no-data \
                 --skip-opt --create-options \
                 $TRIGGERS \
-                --databases $db > ${OUTPUT_PATH}/${db}.${i}-TRIGGERS.sql
+                --databases $db \
+                $X_OPTIONS > ${OUTPUT_PATH}/${db}.${i}-TRIGGERS.sql
         fi
 
         (( i++ ))
@@ -289,7 +296,8 @@ for db in $sDatabases; do
                 --no-data \
                 --skip-opt --create-options \
                 $NO_TRIGGERS \
-                --databases $db > ${OUTPUT_PATH}/${db}.${i}-EVENTS.sql
+                --databases $db \
+                $X_OPTIONS > ${OUTPUT_PATH}/${db}.${i}-EVENTS.sql
         fi
 
         (( i++ ))
@@ -303,7 +311,8 @@ for db in $sDatabases; do
                 $ROUTINES \
                 --skip-opt --create-options \
                 $NO_TRIGGERS \
-                --databases $db > ${OUTPUT_PATH}/${db}.${i}-ROUTINES.sql
+                --databases $db \
+                $X_OPTIONS > ${OUTPUT_PATH}/${db}.${i}-ROUTINES.sql
         fi
     else
         $MYSQLDUMP $STATIC_PARAMS \
@@ -313,7 +322,8 @@ for db in $sDatabases; do
             --opt \
             ${ROUTINES} \
             ${TRIGGERS} \
-            --databases $db > ${OUTPUT_PATH}/${db}.sql
+            --databases $db \
+            $X_OPTIONS > ${OUTPUT_PATH}/${db}.sql
     fi
 
     verbose "done in $SECONDS second(s)"

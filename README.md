@@ -42,19 +42,19 @@ An example code to create such user would look like this:
     -B, --bin-dir <path>
                         Path to folder containing MySQL binaries.
                         Default: /usr/local/bin
-    -e, --enclose       Enclose dumped files in a subfolder. If enabled
-						subfolder name is `mysqldumps_%Y%m%d`
     -c, --default-charset <charset>
                         Same as --default-character-set in mysqldump.
                         Default: utf8
+    -D, --output-directory <path>
+                        The path to directory where the dumps will be places.
+                        Default: .
     -d, --database <name>
                         Name of the database to be dumped. If provided,
                         only this database will be dumped, otherwise all
                         databases will be dumped.
-						If set, privileges will not be dumped.
-    -D, --output-directory <path>
-                        The path to directory where the dumps will be places.
-                        Default: .
+                        If set, privileges will not be dumped.
+    -e, --enclose       Enclose dumped files in a subfolder. If enabled
+                        subfolder name is `mysqldumps_%Y%m%d`
     -h, --host <name>   Database server hostname.
                         Default: localhost
     -F, --output-file <name>
@@ -62,14 +62,12 @@ An example code to create such user would look like this:
                         When specified it is used for the container folder (-e), too.
                         Default: mysqldumps
     -f, --force         Carry on on errors.
-    -o, --overwrite		Overwrite existing dumps if enclosed or tarballed.
-						Requires -e
-    -p, --password <pass>
-                        Password to use when connecting.
-                        *Required*
-                        *Must not be empty*
+    -o, --overwrite     Overwrite existing dumps if enclosed or tarballed.
+                        Requires -e
+    -p, --password
+                        When specified the script will ask for MySQL password
     -s, --split-database-files
-						Will split database dump into separate files.
+                        Will split database dump into separate files.
     -u, --user <name>   User for login if not current.
                         Default: mysqldump
     -v, --verbose       Print out details of the backup process.
@@ -79,7 +77,7 @@ An example code to create such user would look like this:
                         -x "--skip-add-locks --verbose"
                         These params are passed each time mysqldump is called.
     -z, --tar-gz        Tarball and Gzip dumped files.
-						Implies -e
+                        Implies -e
 
 
 ### Examples

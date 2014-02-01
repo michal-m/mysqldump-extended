@@ -5,7 +5,7 @@
 #
 # Author:
 #   Michał Musiał <michal.j.musial@gmail.com>
-#   Copyright 2012, no rights reserved.
+#   Copyright 2014, no rights reserved.
 
 # Functions
 function verbose {
@@ -84,8 +84,7 @@ do
             shift
             ;;
         -p | --pass)
-            if [ -z "$2" ]; then echo "Error: MySQL password not specified" >&2; exit 1; fi
-            MYSQL_PASSWORD=$2
+            ASK_FOR_PASSWORD="ask"
             shift 2
             ;;
         -s | --split-database-files)
@@ -122,6 +121,16 @@ do
             ;;
     esac
 done
+
+if [ "$ASK_FOR_PASSWORD" ]; then
+    read -s -p "Enter password: " PASSWORD_PROMPT
+    echo ""
+    if [ -z "$PASSWORD_PROMPT" ]; then echo "Error: MySQL password not provided" >&2; exit 1; fi
+
+    MYSQL_PASSWORD="--password=${PASSWORD_PROMPT}"
+else
+    MYSQL_PASSWORD=""
+fi
 
 verbose "-- Dump process started on `date`"
 
@@ -194,12 +203,11 @@ verbose "---------------------------------------------------\n"
 if [ ! -d "$OUTPUT_DIR" ]; then echo "Error: Specified output is not a directory" >&2; exit 1; fi
 if [ ! -w "$OUTPUT_DIR" ]; then echo "Error: Output directory is not writable" >&2; exit 1; fi
 if [ "$TAR_GZ" -a -e "${OUTPUT_DIR}/${OUTPUT_FILE}" -a -z "$OVERWRITE" ]; then echo "Error: Specified output file already exists" >&2; exit 1; fi
-if [ -z "$MYSQL_PASSWORD" ]; then echo "Error: MySQL password not provided or empty" >&2; exit 1; fi
 if [ -e "${OUTPUT_DIR}/${DUMPS_DIRNAME}" -a -z "$OVERWRITE" ]; then echo "Error: Output directory already contains a file/folder with the same name as temporary folder required: ${OUTPUT_DIR}/$DUMPS_DIRNAME" >&2; exit 1; fi
 if [ "$TAR_GZ" ] && [ ! -x "$TAR" ]; then echo "Error: Tar not found or not executable (looking at: $TAR)" >&2; exit 1; fi
 
 # OK, let's roll
-STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASSWORD"
+STATIC_PARAMS="--default-character-set=$MYSQL_CHARSET --host=$MYSQL_HOST --user=$MYSQL_USER $MYSQL_PASSWORD"
 
 if [ "$OVERWRITE" -a "$ENCLOSE" ]; then
     verbose "Deleting any old backups..."
